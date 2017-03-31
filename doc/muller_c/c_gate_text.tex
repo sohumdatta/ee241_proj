@@ -1,0 +1,99 @@
+The Muller C gate is a sequential element which switches only when all its inputs have
+the same value.
+When the inputs disagree, the gate output retains its previous value.
+\\
+Any multi-input C gate can be expressed as a cascade of 2-input C gates
+(henceforth MULLER).
+This appendix describes the MULLER gate and its realization on a Xilinx
+Virtex-5 FPGA.
+\\
+
+Boolean expressions of sequential elements need special notation to distinguish the
+current value and next value of signals. 
+We denote both the signal and its current value by the signal name. 
+Hence, $a$ denotes the value of signal 'a' at the present instant. 
+Let $a'$ denote its value at the next instant and $\overline{a}$ its
+logical negation.
+Also, let $\oplus$, $\cdot$ and $+$ represent logical XOR, AND and OR respectively.
+\\
+
+The MULLER gate can be modelled as a latch which is transparent only when both
+its inputs agree:
+\begin{equation} \label{eq:muller_c}
+	\texttt{MULLER}(a,b)' = 
+	\overline{(a \oplus b)} \cdot a\ +\ (a \oplus b) \cdot \texttt{MULLER}(a,b)
+\end{equation}
+%The C gate is the principal element of asynchronous circuits as it implements
+%the indication principle -- it indicates a module to start working only when
+%its inputs are ready. 
+%\\
+
+The Xilinx Virtex-5 FPGA contains 4 storage elements in each SLICE.
+Each storage element can be configured as a level-sensitive latch with input
+driven by a LUT in the same SLICE. The latch is transparent when the control
+signal clock \texttt{CLK} is LOW. Any latch element can either be used directly
+as a 
+\textsl{Transparent Data Latch with Asynchronous Clear and Present and Gate
+Enable} (LDCPE) primitive or inferred by the Xilinx Synthesis Tool (XST).
+
+A straightforward way of synthesizing MULLER on Virtex-5 would be to program
+the LUT for the XOR signal $(a \oplus b)$ and connect its logical inverse to
+\texttt{CLK}.
+
+\subsection{C Gate using RS and SR Latches}
+Although MULLER can be implemented by a single latch and LUT, it is prone
+to spurious transitions in inputs. 
+Using two latches reduces the risk of an output transition due to glitching.
+A well known implementation of MULLER using RS and SR latches due to Murphy
+[TODO:citation] can be used for this purpose.
+
+Both SR and RS latches have two inputs \texttt{set} (\texttt{S}) and
+\texttt{reset} (\texttt{R}). 
+SR latch is equivalent to the RS latch with \texttt{R} and \texttt{S} inputs
+interchanged and the output inverted.
+\begin{equation}\label{eq:rslatch}
+	\texttt{RSLatch}(S,R)' = \overline{R} \cdot (S + \texttt{RSLatch}(S,R))
+\end{equation}
+\begin{equation}\label{eq:srlatch}
+	\texttt{SRLatch}(S,R)' = S + \overline{R} \cdot \texttt{SRLatch}(S,R)
+\end{equation}
+
+For brevity $\texttt{MULLER}(a,b)$ is denoted by $c$. 
+ One can easily simplify eqn. \ref{eq:muller_c} (using identity $x + \overline{x}
+ \cdot y = x + y$ ) to obtain:
+\begin{equation}\label{eq:muller_c_simplified}
+\begin{split}
+	\texttt{MULLER}(a,b)' &= c'\\
+	&= (a \cdot b + \overline{a} \cdot \overline{b}) \cdot a 
+		+ (a \cdot \overline{b} + \overline{a} \cdot b) \cdot c \\
+	&= a \cdot (b + \overline{b} \cdot c) + \overline{a} \cdot b \cdot c \\
+	&= a \cdot c + b \cdot (a + \overline{a} \cdot c) \\
+	&= a \cdot b + a \cdot c + b \cdot c
+\end{split}
+\end{equation}
+To express MULLER in terms of SR and RS latches, 
+observe that eqn. \ref{eq:muller_c_simplified} contains only true values of
+inputs but \texttt{R} appears in both SR and RS latches (eqs. \ref{eq:srlatch}
+and \ref{eq:rslatch}) as $\overline{R}$. 
+Hence, \texttt{R} of the latches will be $\overline{a}$ or $\overline{b}$.
+Only the expression for RS latch (eqn. \ref{eq:rslatch}) has a minterm containing both \texttt{R}
+and \texttt{S}, which will produce the minterm $ a \cdot b $ in eqn. \ref{eq:muller_c_simplified}.
+\\
+Therefore, the RS latch appears in the first stage producing the minterms $a
+\cdot b$ and $a \cdot c$ or $b \cdot c$ (depending on \texttt{R} being
+$\overline{a}$ or $\overline{b}$ respectively). 
+The SR latch forms the second stage.
+Since \texttt{S} appears alone in its expression, we connect the RS output
+to \texttt{S} and the input other than \texttt{R} of previous stage to the
+\texttt{R} of the second stage.
+
+Hence, representing the RS output by $p$ and the subsequent SR output by $q$,
+we have:
+\begin{equation}\label{eq:muller_rs}
+\begin{split}
+	\texttt{RSLatch}(S=a, R=\overline{b}) &= p' = a \cdot b + b \cdot p \\
+	\texttt{SRLatch}(S=p, R=\overline{a}) &= q' = p' + a \cdot q \\
+	q' &= a \cdot b + b \cdot p + a \cdot q
+\end{split}
+\end{equation}
+To prove the equivalence of 
