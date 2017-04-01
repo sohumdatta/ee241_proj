@@ -1,19 +1,18 @@
 The Muller C gate is a sequential circuit element which switches only when all its inputs have
 the same value.
-When the inputs disagree, the gate output retains its previous value.
-\\
+When inputs disagree, the gate output retains its previous value.
 Any multi-input C gate can be expressed as a cascade of 2-input C gates
 (henceforth MULLER).
 This appendix describes the MULLER gate and derives its realization on 
 the Xilinx Virtex-5 FPGA.
 \\
 
-Boolean expressions of sequential elements need special notation to distinguish the
-current value and next value of signals. 
+Boolean expressions of sequential elements need special notation to distinguish
+between the current value and next value of signals. 
 We denote both the signal and its current value by the signal name. 
-Hence, $a$ denotes the value of signal 'a' at the present instant. 
+Hence, $a$ denotes the value of signal 'a' at the current instant. 
 Let $a'$ denote its value at the next instant and $\overline{a}$ its
-logical negation. Then $a''$ will be the value of 'a' after $a'$.
+logical negation. $a''$ will be the value of 'a' after $a'$.
 Also, let $\oplus$, $\cdot$ and $+$ represent logical XOR, AND and OR respectively.
 \\
 
@@ -34,17 +33,17 @@ inputs only when both of them agree:
 
 The Xilinx Virtex-5 FPGA contains 4 storage elements in each SLICE.
 A storage element can be configured as a level-sensitive latch with input
-driven by a LUT in the same SLICE. The latch is transparent when the control
-signal clock \texttt{CLK} is LOW. Any latch element can either be used directly
-as a 
-\textsl{Transparent Data Latch with Asynchronous Clear and Present and Gate
+driven by a LUT in the same SLICE. 
+The latch is transparent when the control signal clock \texttt{CLK} is LOW. 
+Any latch element can either be instantiated directly as a 
+\textsl{Transparent Data Latch with Asynchronous Clear and Preset and Gate
 Enable} (LDCPE) primitive or inferred by the Xilinx Synthesis Tool (XST).
+
 Although XST enables optimization across modules, inferred synthesis may 
 combine handshake stages to produce unwanted behaviour [TODO: experiment to
 see].
-
-For guaranteed functionality, the LDCPE primitve must be used. 
-The module inputs are asynchronous clear (\texttt{CLR}) and preset
+For guaranteed functionality, the LDCPE primitive must be used. 
+Its inputs are asynchronous clear (\texttt{CLR}) and preset
 (\texttt{PRE}), gate enable (\texttt{GE}), gate (\texttt{G}) and data
 (\texttt{D}):
 \begin{equation}\label{eq:virtex_latch}
@@ -55,10 +54,10 @@ The module inputs are asynchronous clear (\texttt{CLR}) and preset
 \end{equation}
 
 A straightforward way of synthesizing MULLER on Virtex-5 would be to program
-the LUT for the XNOR gate $\overline{(a \oplus b)}$ and connect its output to
+a LUT for the XNOR gate $\overline{(a \oplus b)}$ and connect its output to
 \texttt{CLK}.
 %----------------------------------------------------------------------
-% Subsection: C gate using RS abd SR Latches
+% Subsection: C gate using RS and SR Latches
 %----------------------------------------------------------------------
 
 \subsection{C Gate using RS and SR Latches}
@@ -136,17 +135,17 @@ Assuming input steady state i.e.\ $a'' = a' = a$ and $b'' = b' = b$,
 This proves the equivalence of the latch pair (eqn. \ref{eq:muller_rs}) to MULLER
 (eqn. \ref{eq:muller_c_simplified}).
 
-It may appear that the heurestic used to connect the pair just happened to
+It may appear that the heuristic used to connect the pair just happened to
 prove equivalent to MULLER. 
 However, the circuit really was synthesized using reductions on a 
 Signal Transition Graphs (STG) specification [TODO: cite murphy]. 
 STGs are directed graphs with nodes corresponding to minterms in eqn.
 \ref{eq:muller_c_simplified} [TODO: Find citation]. 
 The synthesis algorithm does something similar to matching leaf nodes of the
-latch STGs with that of MULLER -- like our heurestic [TODO: Find
+latch STGs with that of MULLER -- like our heuristic [TODO: Find
 citation]. 
 Also, note that the difference of SR and RS latch expressions (eqs.
-\ref{eq:srlatch} and \ref{eq:rslatch}) helped using the heurestic. 
+\ref{eq:srlatch} and \ref{eq:rslatch}) helped using the heuristic. 
 Though an RS latch can be converted to SR latch easily, it would be much harder
 to build the pair using 2 SR latches.
 
