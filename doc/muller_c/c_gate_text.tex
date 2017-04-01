@@ -28,6 +28,10 @@ inputs only when both of them agree:
 %its inputs are ready. 
 %\\
 
+%----------------------------------------------------------------------
+% Subsection: Virtex 5 primitives
+\subsection{Xilinx Virtex-5 Primitives}
+
 The Xilinx Virtex-5 FPGA contains 4 storage elements in each SLICE.
 A storage element can be configured as a level-sensitive latch with input
 driven by a LUT in the same SLICE. The latch is transparent when the control
@@ -35,12 +39,30 @@ signal clock \texttt{CLK} is LOW. Any latch element can either be used directly
 as a 
 \textsl{Transparent Data Latch with Asynchronous Clear and Present and Gate
 Enable} (LDCPE) primitive or inferred by the Xilinx Synthesis Tool (XST).
+Although XST enables optimization across modules, inferred synthesis may 
+combine handshake stages to produce unwanted behaviour [TODO: experiment to
+see].
+
+For guaranteed functionality, the LDCPE primitve must be used. 
+The module inputs are asynchronous clear (\texttt{CLR}) and preset
+(\texttt{PRE}), gate enable (\texttt{GE}), gate (\texttt{G}) and data
+(\texttt{D}):
+\begin{equation}\label{eq:virtex_latch}
+	\texttt{LDCPE}' = \overline{\texttt{CLR}} \cdot 
+	(\texttt{PRE} + (\texttt{GE} \cdot \texttt{G}) \cdot \texttt{D}) +
+	\overline{\texttt{CLR}} \cdot 
+	(\overline{\texttt{GE} \cdot \texttt{G}}) \cdot \texttt{LDCPE}
+\end{equation}
 
 A straightforward way of synthesizing MULLER on Virtex-5 would be to program
-the LUT for the XOR signal $(a \oplus b)$ and connect its logical inverse to
+the LUT for the XNOR gate $\overline{(a \oplus b)}$ and connect its output to
 \texttt{CLK}.
+%----------------------------------------------------------------------
+% Subsection: C gate using RS abd SR Latches
+%----------------------------------------------------------------------
 
 \subsection{C Gate using RS and SR Latches}
+
 Although MULLER can be implemented by a single latch and LUT, it is prone
 to spurious transitions in inputs. 
 Using two latches reduces the risk of an output transition due to glitching.
@@ -52,10 +74,12 @@ Both SR and RS latches have two inputs \texttt{set} (\texttt{S}) and
 SR latch is equivalent to the RS latch with \texttt{R} and \texttt{S} inputs
 interchanged and the output inverted.
 \begin{equation}\label{eq:rslatch}
-	\texttt{RSLatch}(S,R)' = \overline{R} \cdot (S + \texttt{RSLatch}(S,R))
+	\texttt{RSLatch}(\texttt{S},\texttt{R})' 
+	= \overline{\texttt{R}} \cdot (\texttt{S} + \texttt{RSLatch})
 \end{equation}
 \begin{equation}\label{eq:srlatch}
-	\texttt{SRLatch}(S,R)' = S + \overline{R} \cdot \texttt{SRLatch}(S,R)
+	\texttt{SRLatch}(\texttt{S},\texttt{R})' 
+	= \texttt{S} + \overline{\texttt{R}} \cdot \texttt{SRLatch}
 \end{equation}
 
 For brevity $\texttt{MULLER}(a,b)$ is denoted by $c$. 
@@ -68,7 +92,7 @@ For brevity $\texttt{MULLER}(a,b)$ is denoted by $c$.
 		+ (a \cdot \overline{b} + \overline{a} \cdot b) \cdot c \\
 	&= a \cdot (b + \overline{b} \cdot c) + \overline{a} \cdot b \cdot c \\
 	&= a \cdot c + b \cdot (a + \overline{a} \cdot c) \\
-	&= a \cdot b + a \cdot c + b \cdot c
+	&= a \cdot b + (a + b) \cdot c
 \end{split}
 \end{equation}
 To express MULLER in terms of SR and RS latches, 
@@ -91,14 +115,13 @@ Representing the RS output by $p$ and the subsequent SR output by $q$,
 we have:
 \begin{equation}\label{eq:muller_rs}
 \begin{split}
-	\texttt{RSLatch}(S=a, R=\overline{b}) &= p' = a \cdot b + b \cdot p \\
-	\texttt{SRLatch}(S=p, R=\overline{a}) &= q' = p + a \cdot q \\
-	%q' &= a \cdot b + b \cdot p + a \cdot q
+	\texttt{RSLatch}(\texttt{S}=a, \texttt{R}=\overline{b}) &= p' = a \cdot b + b \cdot p \\
+	\texttt{SRLatch}(\texttt{S}=p, \texttt{R}=\overline{a}) &= q' = p + a \cdot q \\
 \end{split}
 \end{equation}
 From above, we have $q'' = p' + a' \cdot q' = (a \cdot b + b \cdot p) + 
 a' \cdot (p + a \cdot q)$. 
-Assuming input steady state i.e.\ $a'' = a' = a$ and $b'' = b' = b$, we have:
+Assuming input steady state i.e.\ $a'' = a' = a$ and $b'' = b' = b$,
 \begin{equation}
 \begin{split}
 	q''& = a \cdot b + a \cdot p + b \cdot p + a \cdot q\\
@@ -109,9 +132,10 @@ Assuming input steady state i.e.\ $a'' = a' = a$ and $b'' = b' = b$, we have:
 	&= a \cdot b + (a + b ) \cdot q'
 \end{split}
 \end{equation}
-This proves the equivalence of the pair latch (eqn. \ref{eq:muller_rs}) to MULLER
+
+This proves the equivalence of the latch pair (eqn. \ref{eq:muller_rs}) to MULLER
 (eqn. \ref{eq:muller_c_simplified}).
-\\
+
 It may appear that the heurestic used to connect the pair just happened to
 prove equivalent to MULLER. 
 However, the circuit really was synthesized using reductions on a 
@@ -125,3 +149,12 @@ Also, note that the difference of SR and RS latch expressions (eqs.
 \ref{eq:srlatch} and \ref{eq:rslatch}) helped using the heurestic. 
 Though an RS latch can be converted to SR latch easily, it would be much harder
 to build the pair using 2 SR latches.
+
+The LDCPE primitive can be easily configured as RS and SR latches. 
+To set $\texttt{LDCPE} = \texttt{RSLatch}(\texttt{S}, \texttt{R})$ by comparing
+eqs. \ref{eq:virtex_latch} and \ref{eq:rslatch}, we set
+$\texttt{CLR} = \texttt{R}$ and $\overline{\texttt{GE} \cdot \texttt{G}} = 1$.
+Then, $\texttt{PRE} = \texttt{S}$.
+Similarly, for $\texttt{SRLatch}$ set $\overline{\texttt{CLR}} = 1,
+ (\texttt{GE} \cdot \texttt{G}) = \texttt{R}, \texttt{D} = 0$ and $\texttt{PRE}
+ = \texttt{S}$.
