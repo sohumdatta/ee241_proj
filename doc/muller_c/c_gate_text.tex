@@ -1,4 +1,4 @@
-The Muller C gate is a sequential circuit element which switches only when all its inputs have
+The Muller C ("\emph{Completion}") gate is a sequential circuit element which switches only when all its inputs have
 the same value.
 When inputs disagree, the gate output retains its previous value.
 Any multi-input C gate can be expressed as a cascade of 2-input C gates
@@ -40,8 +40,7 @@ Any latch element can either be instantiated directly as a
 Enable} (LDCPE) primitive or inferred by the Xilinx Synthesis Tool (XST).
 
 Although XST enables optimization across modules, inferred synthesis may 
-combine handshake stages to produce unwanted behaviour [TODO: experiment to
-see].
+combine handshake stages to produce unwanted behaviour.
 For guaranteed functionality, the LDCPE primitive must be used. 
 Its inputs are asynchronous clear (\texttt{CLR}) and preset
 (\texttt{PRE}), gate enable (\texttt{GE}), gate (\texttt{G}) and data
@@ -62,8 +61,14 @@ a LUT for the XNOR gate $\overline{(a \oplus b)}$ and connect its output to
 
 \subsection{C Gate using RS and SR Latches}
 
-Although MULLER can be implemented by a single latch and LUT, it is prone
+MULLER can be implemented by a single latch and LUT, but is prone
 to spurious transitions in inputs. 
+One of the latch inputs ($a \oplus b$ as \texttt{enable}) will involve 
+additional delay of an LUT and arrive later than the other input -- thus exhibiting
+wrong behaviour. It is mandatory for a latch \texttt{clk}
+signal to be driven by a buffer in Virtex 5; thus the latch and LUT are on
+separate slices thereby exacerbating the delay mismatch.
+
 Using two latches reduces the risk of an output transition due to glitching.
 A well known implementation of MULLER using RS and SR latches due to Murphy
 [TODO: cite murphy] can be used for this purpose.
@@ -96,12 +101,12 @@ For brevity $\texttt{MULLER}(a,b)$ is denoted by $c$.
 \end{equation}
 To express MULLER in terms of SR and RS latches, 
 observe that eqn. \ref{eq:muller_c_simplified} contains only true values of
-inputs but \texttt{R} appears in both SR and RS latches (eqs. \ref{eq:srlatch}
-and \ref{eq:rslatch}) as $\overline{R}$. 
+inputs but \texttt{R} appears inverted in both SR and RS latches (eqs. \ref{eq:srlatch}
+and \ref{eq:rslatch}). 
 Hence, \texttt{R} of the latches will be $\overline{a}$ or $\overline{b}$.
 Only the expression for RS latch (eqn. \ref{eq:rslatch}) has a minterm containing both \texttt{R}
 and \texttt{S}, which will produce the minterm $ a \cdot b $ in eqn. \ref{eq:muller_c_simplified}.
-\\
+
 Therefore, the RS latch appears in the first stage producing the minterms $a
 \cdot b$ and $a \cdot c$ or $b \cdot c$ (depending on \texttt{R} being
 $\overline{a}$ or $\overline{b}$ respectively). 
@@ -138,22 +143,19 @@ This proves the equivalence of the latch pair (eqn. \ref{eq:muller_rs}) to MULLE
 It may appear that the heuristic used to connect the pair just happened to
 prove equivalent to MULLER. 
 However, the circuit really was synthesized using reductions on a 
-Signal Transition Graphs (STG) specification [TODO: cite murphy]. 
-STGs are directed graphs with nodes corresponding to minterms in eqn.
-\ref{eq:muller_c_simplified} [TODO: Find citation]. 
-The synthesis algorithm does something similar to matching leaf nodes of the
-latch STGs with that of MULLER -- like our heuristic [TODO: Find
+Signal Transition Graph (STG) specification [TODO: cite murphy]. 
+The synthesis algorithm matches STG leaf nodes to the target specification -- like our heuristic [TODO: Find
 citation]. 
-Also, note that the difference of SR and RS latch expressions (eqs.
-\ref{eq:srlatch} and \ref{eq:rslatch}) helped using the heuristic. 
-Though an RS latch can be converted to SR latch easily, it would be much harder
-to build the pair using 2 SR latches.
+Note that the difference of SR and RS latch expressions (eqs.
+\ref{eq:srlatch} and \ref{eq:rslatch}) helped using the heuristic: it would be much harder
+to conceive MULLER using 2 SR latches.
 
 The LDCPE primitive can be easily configured as RS and SR latches. 
-To set $\texttt{LDCPE} = \texttt{RSLatch}(\texttt{S}, \texttt{R})$ by comparing
-eqs. \ref{eq:virtex_latch} and \ref{eq:rslatch}, we set
+To obtain $\texttt{LDCPE} = \texttt{RSLatch}(\texttt{S}, \texttt{R})$ by comparing
+eqs. \ref{eq:virtex_latch} and \ref{eq:rslatch}, set
 $\texttt{CLR} = \texttt{R}$ and $\overline{\texttt{GE} \cdot \texttt{G}} = 1$.
 Then, $\texttt{PRE} = \texttt{S}$.
 Similarly, for $\texttt{SRLatch}$ set $\overline{\texttt{CLR}} = 1,
  (\texttt{GE} \cdot \texttt{G}) = \texttt{R}, \texttt{D} = 0$ and $\texttt{PRE}
  = \texttt{S}$.
+
