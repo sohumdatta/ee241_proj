@@ -11,7 +11,7 @@
 \fi
 
 \usepackage{color}
-
+\usepackage{mathtools}	% for \mathclap
 \usepackage{amssymb}	%for mathbb{}
 \usepackage{amsmath}
 % Note that the amsmath package sets \interdisplaylinepenalty to 10000
@@ -87,6 +87,10 @@
 % systems. The latest version and documentation can be obtained at:
 % http://www.ctan.org/pkg/url
 % Basically, \url{my_url_here}.
+
+\newtheorem{thm}{Theorem}		% for theorem environment
+\newtheorem{lem}[thm]{Lemma}		% for Lemma environment
+\newtheorem{defn}[thm]{Definition}		% for Definition environment
 
 \begin{document}
 
