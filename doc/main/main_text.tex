@@ -52,24 +52,26 @@ Its inputs are asynchronous clear (\texttt{CLR}) and preset
 	(\overline{\texttt{GE} \cdot \texttt{G}}) \cdot \texttt{LDCPE}
 \end{equation}
 
+A straightforward way of synthesizing MULLER on Virtex-5 would be to program
+a LUT for the XNOR gate $\overline{(a \oplus b)}$ and connect its output to
+\texttt{CLK}.
 %----------------------------------------------------------------------
 % Subsection: C gate using RS and SR Latches
 %----------------------------------------------------------------------
 
 \subsection{C Gate using RS and SR Latches}
 
-A straightforward way of synthesizing MULLER on Virtex-5 would be to program
-a LUT for the XNOR gate $\overline{(a \oplus b)}$ and connect its output to
-\texttt{CLK}. However, this will be prone to spurious input transitions.
-One of the latch inputs ($\overline{a \oplus b}$ as \texttt{enable}) will involve 
+MULLER can be implemented by a single latch and LUT, but is prone
+to spurious transitions in inputs. 
+One of the latch inputs ($a \oplus b$ as \texttt{enable}) will involve 
 additional delay of an LUT and arrive later than the other input -- thus exhibiting
 wrong behaviour. It is mandatory for a latch \texttt{clk}
 signal to be driven by a buffer in Virtex 5; thus the latch and LUT are on
-separate slices exacerbating the delay mismatch.
+separate slices thereby exacerbating the delay mismatch.
 
 Using two latches reduces the risk of an output transition due to glitching.
 A well known implementation of MULLER using RS and SR latches due to Murphy
-\cite{murphy_paper} can be used for this purpose.
+[TODO: cite murphy] can be used for this purpose.
 
 Both SR and RS latches have two inputs \texttt{set} (\texttt{S}) and
 \texttt{reset} (\texttt{R}). 
@@ -141,9 +143,9 @@ This proves the equivalence of the latch pair (eqn. \ref{eq:muller_rs}) to MULLE
 It may appear that the heuristic used to connect the pair just happened to
 prove equivalent to MULLER. 
 However, the circuit really was synthesized using reductions on a 
-Signal Transition Graph (STG) specification \cite{murphy_paper}. 
-The synthesis algorithm matches STG leaf nodes to the target specification -- 
-like our heuristic \cite{seger_book}. 
+Signal Transition Graph (STG) specification [TODO: cite murphy]. 
+The synthesis algorithm matches STG leaf nodes to the target specification -- like our heuristic [TODO: Find
+citation]. 
 Note that the difference of SR and RS latch expressions (eqs.
 \ref{eq:srlatch} and \ref{eq:rslatch}) helped using the heuristic: it would be much harder
 to conceive MULLER using 2 SR latches.

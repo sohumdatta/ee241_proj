@@ -45,13 +45,13 @@ to execute and stays enabled will eventually execute).
 
 Any of the guarded statements $S_1... S_n$ in the examples above could be 
 control structures, their repetitions, sequential processes or concurrent processes themselves. 
-Finally for message passing, a special data structure \emph{channel} (denoted
+Finally, for message passing, a special data structure \emph{channel} (denoted
 by $\mathbf{1}, \mathbf{2}...$) is used. 
 At any instant, at most one statement shall read from or write to a channel.
 A read statement $\mathbf{1} ? v$ reads the value from the channel and stores
 it in signal $v$. A write statement $\mathbf{1} ! G$ evaluates the boolean
 expression $G$ and write the value to channel $\mathbf{1}$. A read and write
-statement waits till channel is empty or full respectively.
+statement waits till channel is full or empty respectively.
 \\
 
 We postulate that any asynchronous circuit can be completely described 
@@ -62,15 +62,14 @@ by a process P of the form:
 \end{equation}
 where $A_1.. A_n$ are either \textbf{skip} or message passing
 statements, $X_1... X_n$ are simple assignments where the value assigned is a
-boolean constant \textcolor{red}{[TODO: cite paper]}.
+boolean constant \cite{entropy_paper}.
 This essentially means all computation by the circuit is captured by
 evaluation of guard conditions alone.
 \\
 
 Let $Z_i$ be a random variable for the i\textsuperscript{th} statement executed by P. 
-The probability distribution for $Z_i$ can be
-calculated assuming equi-probable input values or profiling actual traces of
-program execution.
+The probability distribution for $Z_i$ can be numerically calculated assuming a
+prior input distribution or estimated by profiling actual traces of execution.
 \\
 
 \begin{defn}[Entropy]
@@ -109,8 +108,7 @@ A CMOS circuit has three main sources of energy dissipation: leakage currents,
 short circuit currents and dynamic switching currents flowing between the rails.
 An \emph{operation} is defined as a \emph{finite} sequence of input transitions
 within a finite time. The input values may not be provided, only the number of
-transitions and their times must be specified 
-\textcolor{red}{[TODO: cite trace theory]}.
+transitions and their times must be specified \cite{trace_theory}.
 Assuming most of the circuit is implemented using static CMOS (dynamic nodes
 are usually pulled to rail by weak feedback to prevent soft errors) and 
 designed to have low leakage, we can estimate the total energy expended
@@ -128,12 +126,11 @@ It is worthwhile to note differences of this energy model to that of a
 synchronous circuit. The switching factor $n_i$ is an integer rather than a probability. 
 Also, a well-defined operation requires that outputs stabilize within
 finite time after the inputs switch. A special class of asynchronous circuits 
-are required to avoid metastability \textcolor{red}{[TODO:
-cite book]}.
+are required to avoid metastability \cite{seger_book}.
 \\
 
 The \emph{energy index} of the circuit is defined as $K = \sum_i n_i C_i$.
-The energy indices are additive: the index of a circuit is a sum of energy indices
+Energy indices are additive: the index of a circuit is a sum of energy indices
 of all its sub-circuits. The energy index of a CSP $P$ is denoted by $C(P)$.
 
 A central assertion of this model is that parallel sub-circuits with no
@@ -149,7 +146,7 @@ and $w_2$, then the total energy index is $K = w_1 K_1 + w_2 K_2$.
 The three possible ways of enforcing order in CSP are: sequential ordering
 (;), choice (deterministic and non-deterministic) and message-passing. Energy 
 models of implementing each of these are supplied without proof, please refer 
-\textcolor{red}{[TODO: cite]} for the same.
+\cite{entropy_paper} for the same.
 
 Receiving and transmitting $N$-bit values over a channel requires energy
 index proportional to $N$. 
@@ -158,8 +155,8 @@ entails an extra energy index $\propto \log_2 {n}$ over executing the guarded
 statements concurrently 
 $Q = *[[G_1 \to A_1 ]]\ ||\ *[[G_2 \to A_2]]\ ...\ ||\ *[[ G_n \to A_n]]$.
 This is because we can implement the guarded choice using concurrent
-statements and extra $\log_2{n}$ single-bit channels for message-passing.
-\textcolor{red}{[TODO: cite Phd thesis]}
+statements and extra $\log_2{n}$ single-bit channels for message-passing
+\cite{entropy_thesis}.
 \\
 
 Now consider the program P from from eqn. \ref{eq:basic_csp} with $n = 2$. The energy index
@@ -190,7 +187,7 @@ The modified energy index is
 \end{split}
 \end{equation}
 
-Here the constant $u$ is the fixed energy density requires to compute a logical
+Here the constant $u$ is the fixed energy index to compute a logical
 negation and a logical AND of the result (usually negligible). 
 Therefore, re-structuring the program P such that a more common
 guard executes before a less common guard saves overall energy.
@@ -216,8 +213,9 @@ and the energy index for evaluating $Y_{1...m} = Y_1, Y_2, ... Y_m$ by Q is
 $C_{Y_{1...m}}(Q) = \sum_{i = 1}^{m} C_{Y_i}(Q)$. 
 
 \begin{defn}[Energy Index per Operation]
-	$\Pr(y_1,...y_m)$ is the probability of $(y_1, y_2, ...y_m)$ being executed
-	by P. Then, the energy index \textbf{per operation} of Q is defined as the expected average
+	$\Pr(y_1,...y_m)$ is the probability of the sequence of statements $(y_1, y_2, ...y_m)$ 
+	being executed by P. 
+	Then, the energy index \textbf{per operation} of Q is defined as the expected average
 	energy index of a chain of operations 
 	\begin{equation}
 		C(Q) = \lim_{m \to \infty} \frac{1}{m} \sum_{(y_1,...y_m)} \Pr(y_1,...y_m) C_{Y_{1...m}}(Q)
@@ -232,17 +230,22 @@ distrubuted, using the law of large numbers we have:
 		+ k\ \mathbb{E} \Big[\sum_{j=1}^{d(Y)} \log_2{n_{j}(Y)} \Big] 
 \end{equation}
 
+Here, $\mathbb{E[\cdot]}$ denotes the expectation with respect to the sequence
+of statements $(y_1,...y_m)$ having joint probability distribution of
+$\Pr(y_1,...y_m)$.
+
 Now, the path to $Y$ is determined by which of the guards resolved true at each
-depth. Since the node/guard at depth $i$ can be
-described by a binary number $\log_2{n_i(Y)}$ bits wide, the path can be
-described by the list of such numbers in total 
-$\sum_{i=1}^{d(Y)} \log_2 n_i(Y)$ bits
-wide. This is a prefix code for $Y$, and 
-$\mathbb{E}[\sum_{i=1}^{d(Y)} \log_2n_i(Y)]$
-is the average code-length. A result from Information Theory states that the
-average code length of any prefix code is atleast the entropy of the alphabet,
-\textcolor{red}{[TODO: cite]}
-hence $\mathbb{E}[\sum_{i=1}^{d(Y)} \log_2n_i(Y)] \ge H(Y)$. 
+depth. Since there are $n_i(Y)$ distinct guards at depth $i$, we can identify
+the true guard at depth $i$ by a binary number $\log_2{n_i(Y)}$ bits wide. The
+entire path is then a list of such numbers in total 
+$\sum_{i=1}^{d(Y)} \log_2 n_i(Y)$ bits wide (call it $I(Y)$).
+Since all statements are leaf nodes, the binary nnumber $I(Y)$ cannot be a
+prefix to any $I(J), J \ne Y$. Hence, $I(Y)$ is a prefix code for $Y$, and 
+$\mathbb{E}[\sum_{i=1}^{d(Y)} \log_2n_i(Y)]$ is the average code-length. 
+A fundamental result from by C. Shannon from Information Theory states that the
+average code length of any prefix code is atleast the entropy of the alphabet
+\cite{shannon_paper}. 
+Hence $\mathbb{E}[\sum_{i=1}^{d(Y)} \log_2n_i(Y)] \ge H(Y)$. 
 
 Therefore, we have 
 \begin{equation}
@@ -250,18 +253,18 @@ Therefore, we have
 \end{equation}
 \\
 
-The first term in parenthesis is the indispensable cost for evaluating the guards
+The first term in parenthesis is the \emph{indispensable} cost for evaluating the guards
 and executing the statements. As such, asynchronous paradigm does not provide
 any major benefits.
 
 The last term relates to the \emph{scalability}
 of energy with the design size. Unlike synchronous systems where the energy scalability
-factor is linear (or even polynomial) in size, an optimally designed
+factor is linear (or polynomial) in size, an optimally designed
 asynchronous circuit scales linearly with the \emph{entropy} of the system. 
 This shows the \emph{asymptotic} utility of asynchronous circuits
 for energy efficiency in large systems.
 \\
 
-In this sketch, many details about methods of specification and
+In this sketch, several details about methods of specification and
 transformation were not provided. This theory is very thoroughly 
-developed in \textcolor{red}{[TODO:cite]}. 
+developed in \cite{entropy_thesis} \cite{entropy_paper}. 

@@ -1,0 +1,421 @@
+\documentclass[10pt,journal,compsoc]{IEEEtran}
+
+\ifCLASSINFOpdf
+  \usepackage[pdftex]{graphicx}
+  \graphicspath{{../pdf/}{../jpeg/}{../png/}}
+  \DeclareGraphicsExtensions{.pdf,.jpeg,.png}
+\else
+  \usepackage[dvips]{graphicx}
+  \graphicspath{{../eps/}}
+  \DeclareGraphicsExtensions{.eps}
+\fi
+
+\usepackage{color}
+\usepackage{mathtools}	% for \mathclap
+\usepackage{amssymb}	%for mathbb{}
+\usepackage{amsmath}
+% Note that the amsmath package sets \interdisplaylinepenalty to 10000
+% thus preventing page breaks from occurring within multiline equations. Use:
+\interdisplaylinepenalty=2500
+
+% *** ALIGNMENT PACKAGES ***
+%
+%\usepackage{array}
+% Frank Mittelbach's and David Carlisle's array.sty patches and improves
+% the standard LaTeX2e array and tabular environments to provide better
+% appearance and additional user controls. As the default LaTeX2e table
+% generation code is lacking to the point of almost being broken with
+% respect to the quality of the end results, all users are strongly
+% advised to use an enhanced (at the very least that provided by array.sty)
+% set of table tools. array.sty is already installed on most systems. The
+% latest version and documentation can be obtained at:
+% http://www.ctan.org/pkg/array
+
+
+%\usepackage{mdwmath}
+%\usepackage{mdwtab}
+% Also highly recommended is Mark Wooding's extremely powerful MDW tools,
+% especially mdwmath.sty and mdwtab.sty which are used to format equations
+% and tables, respectively. The MDWtools set is already installed on most
+% LaTeX systems. The lastest version and documentation is available at:
+% http://www.ctan.org/pkg/mdwtools
+
+
+% IEEEtran contains the IEEEeqnarray family of commands that can be used to
+% generate multiline equations as well as matrices, tables, etc., of high
+% quality.
+
+
+%\usepackage{eqparbox}
+% Also of notable interest is Scott Pakin's eqparbox package for creating
+% (automatically sized) equal width boxes - aka "natural width parboxes".
+% Available at:
+% http://www.ctan.org/pkg/eqparbox
+
+
+
+
+% *** SUBFIGURE PACKAGES ***
+%\ifCLASSOPTIONcompsoc
+%  \usepackage[caption=false,font=footnotesize,labelfont=sf,textfont=sf]{subfig}
+%\else
+%  \usepackage[caption=false,font=footnotesize]{subfig}
+%\fi
+% subfig.sty, written by Steven Douglas Cochran, is the modern replacement
+% for subfigure.sty, the latter of which is no longer maintained and is
+% incompatible with some LaTeX packages including fixltx2e. However,
+% subfig.sty requires and automatically loads Axel Sommerfeldt's caption.sty
+% which will override IEEEtran.cls' handling of captions and this will result
+% in non-IEEE style figure/table captions. To prevent this problem, be sure
+% and invoke subfig.sty's "caption=false" package option (available since
+% subfig.sty version 1.3, 2005/06/28) as this is will preserve IEEEtran.cls
+% handling of captions.
+% Note that the Computer Society format requires a sans serif font rather
+% than the serif font used in traditional IEEE formatting and thus the need
+% to invoke different subfig.sty package options depending on whether
+% compsoc mode has been enabled.
+%
+% The latest version and documentation of subfig.sty can be obtained at:
+% http://www.ctan.org/pkg/subfig
+
+
+
+% *** PDF, URL AND HYPERLINK PACKAGES ***
+\usepackage{url}
+% url.sty was written by Donald Arseneau. It provides better support for
+% handling and breaking URLs. url.sty is already installed on most LaTeX
+% systems. The latest version and documentation can be obtained at:
+% http://www.ctan.org/pkg/url
+% Basically, \url{my_url_here}.
+
+\newtheorem{thm}{Theorem}		% for theorem environment
+\newtheorem{lem}[thm]{Lemma}		% for Lemma environment
+\newtheorem{defn}[thm]{Definition}		% for Definition environment
+
+\begin{document}
+
+\title{A Comparison of Synchronous and Asynchronous Digital Design}
+
+\author{Sohum Datta, EECS, UC Berkeley
+\\sohumdatat@berkeley.edu 
+\thanks{
+This is the final report for the term project of EE241B: Advanced Digital Integrated
+Circuits offered in Spring 2017 by Prof. Borivoje Nikolic at UC Berkeley,
+CA 94704, United States. Special thanks to Vignesh Iyer and Prof. Elad Alon,
+GSI and Instructor of EECS151/251 Spring 2017. The experiments would not have
+been possible without their equipment and support.}}
+
+\IEEEtitleabstractindextext{%
+
+\begin{abstract}
+A simple experiment is described which compares synchronous and
+asynchronous implementations of a three-stage integer pipeline.
+The aim of the experiment was to replicate some results of similar previous
+works and gain insights to the fundamental difference between the two
+paradigms. The asynchronous implementation was about 19\% worse in area
+and 64\% worse in throughput than the synchronous design.
+A derivation of the Muller C gate based on latches and a
+proof of linearity of the lower bound on energy scalability with the
+entropy of specification of asynchronous circuits is also provided.
+
+This document is self-contained for the experimental setup. A summary of
+design methods for asynchronous processors is also provided.
+However, the proofs in appendices are brief and important results used are only
+stated without derivations.
+
+\end{abstract}
+
+
+
+% Note that keywords are not normally used for peerreview papers.
+\begin{IEEEkeywords}
+ Asynchronous Circuits, Field-Programmable Gate Arrays, Self-timed Pipelines,
+ Quasi-Delay Insensitive Circuits, prefix codes, process algebra.
+\end{IEEEkeywords}}
+\maketitle
+
+
+\section{Introduction}
+
+Asynchronous circuits have no clock. The sequencing of dependent computations
+is done via \emph{handshaking}. 
+
+The main advantage of asynchronous circuits is the inherent
+\emph{slack-free} nature. The worst-case correctness behaviour for synchronous
+systems is replaced by \emph{average}-case behaviour in asynchronous systems.
+
+Synchronous circuits consume energy strongly related to the \emph{largest combinational
+delay} in its path. By contrast, 
+asynchronous circuits of large systems can be made to consume energy within a 
+constant factor of the circuits entropy. A proof is outlined in Appendix B.
+
+However, there are some serious pitfalls of this new paradigm.
+For asynchronous circuits, Computer Aided Design (CAD) infrastructure is still in its infancy.
+Estimating the average-case delay of a circuit 
+is an NP-Hard problem \cite{seger_book}. It can also depend
+on component delays in unexpected ways -- a faster gate can lead to overall
+slower circuit! (For an example, please refer \cite{seger_book},
+pg. 7). Finally, verification of asynchronous circuit can be very difficult 
+\cite{async_test_survey}. A substantial family of circuit
+classes cannot be tested for certain types of errors \cite{async_c_test}.
+
+\section{Asynchronous Circuits on FPGA}
+
+Prototyping asynchronous circuits on Field-Programmable Gate Arrays (FPGAs)
+is a recent trend. As designers turn to explore asynchronous
+circuits, the cheaper platform which is widely deployed in today's data-centers
+serves better \cite{japan_fpga_paper}. Moreover, many modern systems features
+(such as  Multi-Processor SoC, ARM IP Cores) can be easily
+integrated with the  asynchronous circuit implemented.
+
+There are several ways to design asynchronous circuits on commercial FPGAs 
+\cite{japan_1} \cite{japan_2} \cite{japan_3} \cite{japan_4} \cite{japan_5}. An important choice is to
+design Muller C Gate using FPGA resources. Appendix A describes the design
+used.
+
+\begin{figure} 
+	\centering
+	\includegraphics[width = 0.5 \textwidth]{micropipeline} \label{fig:micropipeline}
+	\caption{Sutherland's basic micro-pipeline for asynchronous circuits.} 
+	\label{fig:micropipeline}
+\end{figure}
+
+\section{Self-Timed Pipelines}
+
+Self-timed pipelines ensure progress without the help of external signals
+(clock). Unlike most modern processors where deep pipelines result
+in large control overhead (synchronous stall signals), free elasticity in
+asynchronous pipelines provide for data-driven throttling of speed and
+power.
+
+The basic micro-pipeline was developed by Ivan Sutherland (fig.
+\ref{fig:micropipeline}) \cite{sutherland_cite}.
+Its main pitfall is the fact that the pipeline evaluates 
+\emph{at most half} of its stages at any instant.
+
+Another family of self-timed circuits is composed of alternating computation and
+interconnection blocks \cite{seger_book}. Computational blocks
+use \emph{Dynamic Cascode Voltage Switch Logic} (DCVSL), a four-phase logic style,
+and the interconnection blocks control handshaking.
+
+A good reference for self-timed pipelines is \cite{micropipeline_cite}.
+
+
+\begin{figure} 
+	\centering
+	\includegraphics[width = 0.5 \textwidth]{pipeline} 
+	\caption{The three-stage asynchronous pipeline implemented on Xilinx
+	Virtex-5.} 
+	\label{fig:pipeline}
+\end{figure}
+
+\section{The Asynchronous Pipeline Setup}
+
+A three-stage pipeline of an in-order RISCV32UI integer processor is
+implemented. A synchronous and asynchronous
+version of the same pipeline was written and compared. 
+The asynchronous pipeline (as in fig. \ref{fig:pipeline}) has stage registers 
+implemented by flip-flops but clocked by the micro-pipeline (fig.
+\ref{fig:micropipeline}). Since the stage delays may be mis-matched, \emph{no
+data forwarding or speculative execution} is performed in either design.
+
+The EECS151: FPGA Lab resource Xilinx Virtex-5 FPGA was used for the
+experiments. Its basic assembly tests were used for verification and debugging, 
+and the \texttt{mmult} program for benchmarking and comparing designs.
+
+In order to implement the delay elements (DELAY0, ... DELAY3 in fig. \ref{fig:pipeline}), the
+Virtex 5 primitive IODELAY was used. IODELAY can provide user-adjusted fixed
+delay to Input/Output ports or to the internal fabric. The resolution of the
+delay line used is about 31 ps. at 50 MHz control frequency. Fixed tap delay
+requires the use control primitive IODELAYCTRL
+(one each in 16 clock regions). 
+
+
+\begin{figure} 
+	\centering
+	\includegraphics[width = 0.5 \textwidth]{layout}
+	\caption{The routed designs: asynchronous (left) and synchronous (right).} 
+	\label{fig:layout}
+\end{figure}
+
+
+
+\section{Simulation Methodology}
+
+Preliminary Static Timing Analysis (STA) without IODELAY primitives revealed
+that stage delays went up to 3.8 ns (i.e. about 3 IODELAYs). Virtex 5 requires
+\emph{all clock signals to be buffered} before being clocked into a latch.
+Since the buffering is performed automatically (depending on the number of
+clock domain crossings), the user cannot limit the distance between 
+micro-pipeline gates and IODELAYs without manually routing the entire design.
+
+This was a significant problem: a change in the number of IODELAYs for
+a stage will change the routed design unpredictably. Hence, number of IODELAYs
+for \emph{each stage} must be tuned correctly at once.
+
+With a lack of alternatives, a manual iteration schedule was followed:
+\begin{enumerate}
+	\item Set the number of IODELAYs for each stage.
+	\item Find out the stage delays after tool-flow using STA.
+	\item If the pipeline path is \emph{within limits} of the delay provided 
+		by the current number of IODELAYs for all
+		stages, continue. 
+		If for any path the STA delay is longer than the
+		maximum delay provided by IODELAYS, increment the number of IODELAYs.
+		If there are many such stages, increment for the stage with least 
+		number of IODELAYs. Go to Step 2.
+	\item If you have Static timining delays within the limits of IODELAYs, set
+		the correct tap delay for each stage.
+	\item Perform assembly tests. If fail, return to Step 1 with the stage with
+		smallest total IODELAY delay incremented. If the IODELAYs are already at their
+		maximum delay for that stage, a new IODELAY must be added. 
+	\item Benchmark \texttt{mmult} to obtain the effective throughput.
+\end{enumerate}
+
+
+\section{Results}
+Fig. \ref{fig:layout} shows the routed wires and SLICEs for the design.
+The asynchronous design has more wires towards the left edge -- to connect to
+IODELAYs forced to be at the chip (IO) boundary. 
+
+\begin{center}
+\begin{tabular}{||c c c c||} 
+	\hline
+	\textbf{Resource} & \textbf{Sync.} & \textbf{Async.} & \textbf{Change} \\ [0.5ex] 
+	\hline\hline
+	SLICE Regs. & 1413 & 1446 & +33 (23 \%) \\ 
+	\hline
+	SLICE LUTs & 2358 & 2395 & +37 (16 \%) \\
+	\hline
+	BUFG/BUFGCTRL & 2 & 5 & +3 \\
+	\hline
+	Throughput & 67.4 MIPS & 24.1 MIPS & - 43.3 (- 64 \%) \\
+	\hline
+\end{tabular}
+\end{center}
+
+Clearly, the \texttt{mmult} throughput of asynchronous design was lower than 50 
+\% of synchronous since only half of the micro-pipeline can be full. 
+Rest of the loss can be accounted for by over-estimation of IODELAY values
+(due to manual tuning) and extra latency to IODELAY at the edge of chip.
+\\
+
+Xilinx ML505/6/7 development board does not have supply resistances to measure current. Hence,
+power measurements could not be performed. The difficulties in
+designing the asynchronous system on a commercial synchronous machine
+highlights the mismatch between conventional tools and asynchronous design.
+
+\newpage
+
+\appendices
+% you can choose not to have a title for an appendix
+% if you want by leaving the argument blank
+\section{The C Gate and the Virtex-5 FPGA}
+\input{../muller_c/c_gate_text.tex}
+
+\section{Energy and Entropy of Asynchronous Circuits} \label{appendix_entropy}
+\input{../entropy/entropy_text.tex}
+
+% Can use something like this to put references on a page
+% by themselves when using endfloat and the captionsoff option.
+\ifCLASSOPTIONcaptionsoff
+  \newpage
+\fi
+
+\begin{thebibliography}{1}
+
+
+
+\bibitem{seger_book}
+	J.~A. Brzozowski and C-J.~H. Seger, \emph{Asynchrnonous Circuits},
+		Monographs in Computer Science, Springer 1995.
+
+\bibitem{async_test_survey}
+	H.~Hulgaard, S.~M. Burns, G.~Borriello, \emph{Testing asynchronous
+		circuits: A survey}, Integration, the VLSI Journal, Volume 19, Issue 3,
+		1995, Pages 111-131.
+
+\bibitem{async_c_test}
+	J.~A. Brzozowski and K.~ Raahemifar, \emph{Testing C-elements is not
+		elementary}, Proceedings Second Working Conference on Asynchronous
+		Design Methodologies, London, 1995, pp. 150-159.
+
+\bibitem{japan_fpga_paper}
+	J.~Furushima, M.~Nakajima, H.~ Saito, \emph{Design of an Asynchronous
+		Processor with bundled-data implementation on an commercial FPGA},
+		Informaticam Vol. 90, No. 4, 2016.
+
+\bibitem{japan_1}
+	M.~Tranchero and L.~M. Reyneri, \emph{Exploiting synchronous 
+		placement for asynchronous circuits onto commercial FPGAs}
+		, Proc. FPL, pp.622–625, 2009.
+		
+\bibitem{japan_2}
+		Q.~T. Ho et al.,\emph{Implementing Asynchronous Circuits
+		on LUT Based FPGAs}, Proc. FPL, pp.36–46, 2002.
+
+\bibitem{japan_3}
+		H.~Saito et al., \emph{A Floorplan Method for Asynchronous Circuits
+		with Bundled-data Implementation on FPGAs}, Proc. ISCAS, pp.925–928, 2010.
+
+\bibitem{japan_4}
+	K.~Takizawa et al., \emph{A Design Support Tool Set for
+		Asynchronous Circuits with Bundled-data Implemen-
+		tation on FPGAs}, Proc. FPL, pp.1–4, September
+		2014.
+
+\bibitem{japan_5}
+	N.~Minas et al., \emph{FPGA Implementation of an
+		Asynchronous Processor with Both Online and Of-
+		fline Testing Capabilities}, Proc. Async, pp.128–137,
+		2008.
+
+\bibitem{sutherland_cite}
+		I.~E. Sutherland, \emph{Micropipelines} Commun. ACM 32, 6 (June 1989),
+		720-738.
+
+\bibitem{micropipeline_cite}
+		T.~E. Williams, \emph{Analyzing and improving the latency and throughput
+		performance of self-timed pipelines and rings,} [Proceedings] 1992 IEEE
+		International Symposium on Circuits and Systems, San Diego, CA, 1992,
+		pp. 665-668 vol.2.
+
+\bibitem{trace_theory}
+	R.~Manohar, \emph{The entropy of traces in parallel computation} in IEEE
+		Transactions on Information Theory, vol. 45, no. 5, pp. 1606-1608, Jul
+		1999.
+
+\bibitem{shannon_paper}
+	C. Shannon, \emph{ A mathematical theory of communication},
+	In Bell Systems Tech. J., volume 27, pages 379-423,1948.
+
+\bibitem{entropy_paper}
+	J.~A. Tierno, R.~Manohar, and A.~J. Martin. \emph{The Energy and
+	Entropy of VLSI Computations} In Proceedings of the 2nd International
+	Symposium on Advanced Research in Asynchronous Circuits and Systems (ASYNC
+	'96). IEEE Computer Society, Washington, DC, USA, 1996.
+
+\bibitem{entropy_thesis}
+	J.~A. Tierno, \emph{An energy-complexity model for VLSI
+	computations} Dissertation (Ph.D.), California Institute of Technology.
+	1995.
+
+\end{thebibliography}
+
+
+
+
+
+% trigger a \newpage just before the given reference
+% number - used to balance the columns on the last page
+% adjust value as needed - may need to be readjusted if
+% the document is modified later
+%\IEEEtriggeratref{8}
+% The "triggered" command can be changed if desired:
+%\IEEEtriggercmd{\enlargethispage{-5in}}
+% references section
+
+% that's all folks
+\end{document}
+
+
