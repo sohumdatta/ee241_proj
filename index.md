@@ -5,4 +5,4 @@ Welcome to my course project homepage for EE241B: Advanced Digital ICs in Spring
 
 I have uploaded the [midterm report](Midterm_report.pdf) which briefly introduces Asynchronous Circuit to people with EECS251 background and describes my experiment for the next phase. Have a look!
 
-The contents of this page will be updated as the semester progresses. Please visit again!
+The Spring 2017 Term is coming to an end. The [presentation slides](doc/presentation_slides.pdf) and [final report](doc/main/main.pdf) are here!
